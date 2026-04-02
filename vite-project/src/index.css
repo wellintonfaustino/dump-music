@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+@theme {
+  --color-deck-dark: #1a1a2e;
+  --color-deck-panel: #16213e;
+  --color-deck-accent: #e94560;
+  --color-deck-highlight: #0f3460;
+  --color-knob-shadow: #0a0a0f;
+  --color-display: #00ff88;
+}
+
+body {
+  @apply bg-deck-dark text-white overflow-hidden;
+}
+
+/* Knob Styles */
+.knob {
+  @apply relative w-16 h-16 rounded-full cursor-pointer;
+  background: linear-gradient(145deg, #1e3a5f, #0a1628);
+  box-shadow: 
+    5px 5px 10px #0a0a0f,
+    -5px -5px 10px #2a3a5f,
+    inset 0 2px 4px rgba(255,255,255,0.1);
+}
+
+.knob::before {
+  content: '';
+  @apply absolute top-1/2 left-1/2 w-1 h-6 bg-deck-accent;
+  transform: translate(-50%, -100%);
+  transform-origin: bottom center;
+  border-radius: 2px;
+}
+
+.knob-marker {
+  @apply absolute w-1.5 h-5 bg-deck-accent rounded-full;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Fader Styles */
+.fader {
+  @apply relative w-12 h-48 bg-gradient-to-b from-gray-800 to-gray-900 rounded-lg;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.fader-track {
+  @apply absolute top-2 bottom-2 left-1/2 w-1 -translate-x-1/2 bg-gray-700 rounded;
+}
+
+.fader-handle {
+  @apply absolute left-1/2 w-10 h-16 -translate-x-1/2 rounded-md cursor-grab;
+  background: linear-gradient(145deg, #2a3a5f, #1a2a4f);
+  box-shadow: 
+    0 2px 8px rgba(0,0,0,0.5),
+    inset 0 1px 2px rgba(255,255,255,0.1);
+}
+
+.fader-handle:active {
+  @apply cursor-grabbing;
+}
+
+/* Button Pads */
+.btn-pad {
+  @apply relative px-6 py-4 rounded-lg font-bold text-sm uppercase tracking-wider transition-all duration-100;
+  background: linear-gradient(145deg, #1e3a5f, #162744);
+  box-shadow: 
+    3px 3px 6px #0a0a0f,
+    -3px -3px 6px #2a4a7f,
+    inset 0 1px 2px rgba(255,255,255,0.1);
+}
+
+.btn-pad:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    5px 5px 10px #0a0a0f,
+    -5px -5px 10px #2a4a7f;
+}
+
+.btn-pad:active {
+  transform: translateY(0);
+  box-shadow: 
+    inset 3px 3px 6px #0a0a0f,
+    inset -3px -3px 6px #2a4a7f;
+}
+
+.btn-pad.active {
+  background: linear-gradient(145deg, #e94560, #c73e5a);
+  box-shadow: 
+    0 0 20px rgba(233, 69, 96, 0.5),
+    inset 0 2px 4px rgba(255,255,255,0.2);
+}
+
+/* LED Display */
+.led-display {
+  @apply font-mono text-display bg-black/50 px-4 py-2 rounded;
+  text-shadow: 0 0 10px currentColor;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+/* Vinyl Record Animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.vinyl {
+  @apply w-48 h-48 rounded-full relative;
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 50%),
+    repeating-radial-gradient(circle at center, #1a1a2e 0px, #1a1a2e 2px, #0f0f1a 3px, #0f0f1a 4px);
+  box-shadow: 
+    0 0 30px rgba(0,0,0,0.8),
+    inset 0 0 50px rgba(0,0,0,0.5);
+}
+
+.vinyl.spinning {
+  animation: spin 2s linear infinite;
+}
+
+.vinyl::after {
+  content: '';
+  @apply absolute top-1/2 left-1/2 w-12 h-12 -translate-x-1/2 -translate-y-1/2 rounded-full;
+  background: linear-gradient(145deg, #e94560, #c73e5a);
+  box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+}
+
+/* Sequencer Grid */
+.sequencer-grid {
+  @apply grid gap-1;
+  grid-template-columns: repeat(16, 1fr);
+}
+
+.sequencer-cell {
+  @apply aspect-square rounded cursor-pointer transition-all duration-150;
+  background: linear-gradient(145deg, #1a2a4f, #0a1628);
+}
+
+.sequencer-cell:hover {
+  @apply brightness-125;
+}
+
+.sequencer-cell.active {
+  background: linear-gradient(145deg, #e94560, #c73e5a);
+  box-shadow: 0 0 10px rgba(233, 69, 96, 0.6);
+}
+
+.sequencer-cell.playing {
+  @apply ring-2 ring-display;
+}
+
+/* Waveform Visualizer */
+.waveform {
+  @apply w-full h-20 bg-black/30 rounded-lg overflow-hidden relative;
+}
+
+.waveform-bar {
+  @apply absolute bottom-0 bg-gradient-to-t from-deck-accent to-display;
+  width: 3px;
+  transition: height 0.1s ease;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  @apply w-2 h-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-deck-panel;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-deck-accent/50 rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-deck-accent;
+}
