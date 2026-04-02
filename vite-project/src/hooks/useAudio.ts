@@ -1,5 +1,5 @@
 import { MUSIC_STYLES, KEY_FREQUENCIES, SCALES, DEFAULT_TRACKS, MAX_STEPS, PERCUSSION_SOUNDS } from '../types/audio.ts';
-import type { MusicStyle, Scale, Track, PatternStep, TrackType, SynthParams, TrackEffects } from '../types/audio.ts';
+import type { MusicStyle, Scale, Track, PatternStep, SynthParams, TrackEffects } from '../types/audio.ts';
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -17,7 +17,6 @@ export class AudioEngine {
   private reverbNode: ConvolverNode | null = null;
   private delayNode: DelayNode | null = null;
   private distortionNode: WaveShaperNode | null = null;
-  private chorusNode: DelayNode | null = null;
   private phaserNode: BiquadFilterNode | null = null;
   private trackGainNodes: Map<string, GainNode> = new Map();
   private trackPannerNodes: Map<string, StereoPannerNode> = new Map();
@@ -55,11 +54,8 @@ export class AudioEngine {
     
     // Distortion
     this.distortionNode = this.ctx.createWaveShaper();
-    this.distortionNode.curve = this.makeDistortionCurve(50);
+    this.distortionNode.curve = this.makeDistortionCurve(50) as any;
     this.distortionNode.oversample = '4x';
-    
-    // Chorus
-    this.chorusNode = this.ctx.createDelay(0.05);
     
     // Phaser
     this.phaserNode = this.ctx.createBiquadFilter();
@@ -237,7 +233,7 @@ export class AudioEngine {
     });
   }
 
-  // Som de percussão avançado
+  // Síntese de percussão melhorada com pitch decay e filtros apropriados
   playPercussion(soundName: keyof typeof PERCUSSION_SOUNDS, step: PatternStep) {
     if (!this.ctx) return;
     
@@ -245,51 +241,70 @@ export class AudioEngine {
     if (!sound) return;
 
     const now = this.ctx.currentTime;
+    const velocity = step.velocity;
     
-    if (sound.noise > 0) {
-      // Som com ruído (snare, clap, etc)
-      const bufferSize = this.ctx.sampleRate * sound.decay;
-      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3);
-      }
-      
-      const noise = this.ctx.createBufferSource();
-      noise.buffer = buffer;
-      
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = sound.name === 'Snare' || sound.name === 'Clap' ? 'highpass' : 'bandpass';
-      filter.frequency.value = sound.frequency;
-      
-      const gain = this.ctx.createGain();
-      gain.gain.setValueAtTime(step.velocity * sound.noise, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + sound.decay);
-      
-      noise.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.masterGain!);
-      
-      noise.start(now);
-    }
-    
+    // Componente tonal (oscilador)
     if (sound.noise < 1) {
-      // Som tonal (kick, tom, etc)
       const osc = this.ctx.createOscillator();
       osc.type = sound.type;
       osc.frequency.setValueAtTime(sound.frequency, now);
-      osc.frequency.exponentialRampToValueAtTime(sound.frequency * 0.1, now + sound.decay);
+      
+      // Pitch decay para drums (kick, toms) - desce a frequência rapidamente
+      if (sound.pitchDecay && sound.pitchDecay > 0) {
+        osc.frequency.exponentialRampToValueAtTime(
+          Math.max(sound.frequency * 0.1, 20),
+          now + sound.pitchDecay
+        );
+      }
       
       const gain = this.ctx.createGain();
-      gain.gain.setValueAtTime(step.velocity * (1 - sound.noise), now);
+      const tonalGain = velocity * (1 - sound.noise);
+      gain.gain.setValueAtTime(tonalGain, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + sound.decay);
       
       osc.connect(gain);
       gain.connect(this.masterGain!);
       
       osc.start(now);
-      osc.stop(now + sound.decay);
+      osc.stop(now + sound.decay + 0.01);
+    }
+    
+    // Componente de ruído
+    if (sound.noise > 0) {
+      const bufferSize = Math.ceil(this.ctx.sampleRate * sound.decay);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      
+      // Envelope de ruído com decay exponencial
+      for (let i = 0; i < bufferSize; i++) {
+        const t = i / bufferSize;
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2);
+      }
+      
+      const noiseSource = this.ctx.createBufferSource();
+      noiseSource.buffer = buffer;
+      
+      // Filtro apropriado para cada tipo de som
+      const filter = this.ctx.createBiquadFilter();
+      if (sound.noiseFilter && sound.noiseFilter > 0) {
+        filter.type = 'highpass';
+        filter.frequency.value = sound.noiseFilter * 0.5;
+        filter.Q.value = 0.7;
+      } else {
+        filter.type = 'bandpass';
+        filter.frequency.value = sound.frequency;
+        filter.Q.value = 1.0;
+      }
+      
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(velocity * sound.noise * 0.6, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + sound.decay);
+      
+      noiseSource.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain!);
+      
+      noiseSource.start(now);
     }
   }
 
@@ -408,25 +423,59 @@ export class AudioEngine {
     });
   }
 
-  // Padrões melódicos avançados
+  // Padrões melódicos com movimento stepwise (graus conjuntos)
   generateMelodyPattern(): PatternStep[] {
     const scaleNotes = this.generateScaleNotes(this.currentKey, 4);
     const pattern: PatternStep[] = [];
+    let currentDegree = Math.floor(scaleNotes.length / 2);
+    let direction = 1;
+    const stepsPerPhrase = 8;
+    const cycleLength = 32;
     
     for (let i = 0; i < this.stepCount; i++) {
-      // Melodia mais complexa com variação por posição
-      const probability = i % 8 === 0 ? 0.8 : i % 4 === 0 ? 0.6 : 0.3;
+      if (i >= cycleLength) {
+        pattern.push({ ...pattern[i % cycleLength] });
+        continue;
+      }
+      const phrasePosition = i % stepsPerPhrase;
       
-      if (Math.random() < probability) {
-        const noteIndex = Math.floor(Math.random() * scaleNotes.length);
-        const octave = Math.random() > 0.7 ? 5 : 4;
-        const note = scaleNotes[noteIndex].replace(/\d/, '') + octave;
+      // Nova frase a cada 8 steps
+      if (phrasePosition === 0) {
+        currentDegree = Math.floor(scaleNotes.length / 2) + (Math.random() > 0.5 ? 1 : -1);
+        direction = Math.random() > 0.5 ? 1 : -1;
+      }
+      
+      // Determinar se toca nota ou silêncio
+      const shouldPlay = phrasePosition === 0 ? 0.9 :
+                        phrasePosition === 4 ? 0.7 :
+                        phrasePosition % 2 === 0 ? 0.5 :
+                        0.25;
+      
+      if (Math.random() < shouldPlay) {
+        // Movimento stepwise: sobe ou desce 1-2 graus
+        const step = Math.random() > 0.7 ? 2 : 1;
+        currentDegree += step * direction;
+        
+        // Inverter direção nas bordas
+        if (currentDegree >= scaleNotes.length - 1) {
+          direction = -1;
+          currentDegree = scaleNotes.length - 1;
+        } else if (currentDegree <= 0) {
+          direction = 1;
+          currentDegree = 0;
+        }
+        
+        // Oitava variável para notas altas na segunda metade da frase
+        const useHighOctave = phrasePosition >= 4 && Math.random() > 0.6;
+        const baseNote = scaleNotes[currentDegree];
+        const note = useHighOctave 
+          ? baseNote.replace(/\d/, '') + '5' 
+          : baseNote;
         
         pattern.push({
           note,
-          velocity: 0.4 + Math.random() * 0.4,
-          duration: 0.5 + Math.random() * 0.5,
-          glide: Math.random() > 0.8,
+          velocity: 0.5 + (phrasePosition === 0 ? 0.2 : 0) + Math.random() * 0.2,
+          duration: phrasePosition % 4 === 0 ? 0.6 : 0.35,
         });
       } else {
         pattern.push({ note: null, velocity: 0 });
@@ -439,19 +488,43 @@ export class AudioEngine {
   generateLeadPattern(): PatternStep[] {
     const scaleNotes = this.generateScaleNotes(this.currentKey, 5);
     const pattern: PatternStep[] = [];
+    let currentDegree = Math.floor(scaleNotes.length / 2);
+    const phraseLength = 4;
+    const cycleLength = 32;
     
     for (let i = 0; i < this.stepCount; i++) {
-      const probability = i % 16 === 0 ? 0.9 : i % 8 === 4 ? 0.7 : 0.2;
+      if (i >= cycleLength) {
+        pattern.push({ ...pattern[i % cycleLength] });
+        continue;
+      }
+      const phrasePos = i % (phraseLength * 2);
       
-      if (Math.random() < probability) {
-        const noteIndex = Math.floor(Math.random() * scaleNotes.length);
-        pattern.push({
-          note: scaleNotes[noteIndex],
-          velocity: 0.6 + Math.random() * 0.4,
-          duration: 0.8,
-          glide: true,
-        });
+      // Lead toca em frases de 4 notas com pausas
+      if (phrasePos < phraseLength) {
+        const notePos = phrasePos % phraseLength;
+        
+        if (notePos === 0 || (notePos === 2 && Math.random() > 0.4)) {
+          // Nota principal da frase ou resposta
+          if (notePos === 0) {
+            currentDegree = Math.floor(Math.random() * scaleNotes.length);
+          } else {
+            // Resposta melódica: mover por grau
+            currentDegree = Math.max(0, Math.min(scaleNotes.length - 1,
+              currentDegree + (Math.random() > 0.5 ? 1 : -1)
+            ));
+          }
+          
+          pattern.push({
+            note: scaleNotes[currentDegree],
+            velocity: 0.7 + Math.random() * 0.2,
+            duration: 0.5,
+            glide: notePos === 0,
+          });
+        } else {
+          pattern.push({ note: null, velocity: 0 });
+        }
       } else {
+        // Pausa entre frases
         pattern.push({ note: null, velocity: 0 });
       }
     }
@@ -462,18 +535,35 @@ export class AudioEngine {
   generatePluckPattern(): PatternStep[] {
     const scaleNotes = this.generateScaleNotes(this.currentKey, 4);
     const pattern: PatternStep[] = [];
-    const arpSequence = [0, 2, 4, 2, 0, 3, 5, 3];
+    // Arpejo da escala: 1-3-5-7-5-3 repetindo
+    const arpDegrees = [0, 2, 4, 6, 4, 2];
+    const cycleLength = 16;
     
     for (let i = 0; i < this.stepCount; i++) {
-      if (i % 2 === 0 && Math.random() > 0.3) {
-        const noteIndex = arpSequence[i % arpSequence.length] % scaleNotes.length;
+      if (i >= cycleLength) {
+        pattern.push({ ...pattern[i % cycleLength] });
+        continue;
+      }
+      // Pluck toca em colcheias alternadas
+      if (i % 2 === 0) {
+        const degree = arpDegrees[(Math.floor(i / 2)) % arpDegrees.length] % scaleNotes.length;
         pattern.push({
-          note: scaleNotes[noteIndex],
-          velocity: 0.5 + Math.random() * 0.3,
-          duration: 0.3,
+          note: scaleNotes[degree],
+          velocity: 0.45 + (i % 8 === 0 ? 0.15 : 0) + Math.random() * 0.1,
+          duration: 0.2,
         });
       } else {
-        pattern.push({ note: null, velocity: 0 });
+        // Rests ocasionais para dar espaço
+        if (Math.random() > 0.6) {
+          pattern.push({ note: null, velocity: 0 });
+        } else {
+          const degree = arpDegrees[(Math.floor(i / 2)) % arpDegrees.length] % scaleNotes.length;
+          pattern.push({
+            note: scaleNotes[degree],
+            velocity: 0.3,
+            duration: 0.15,
+          });
+        }
       }
     }
     
@@ -483,15 +573,25 @@ export class AudioEngine {
   generateArpPattern(): PatternStep[] {
     const scaleNotes = this.generateScaleNotes(this.currentKey, 4);
     const pattern: PatternStep[] = [];
-    const arpSequence = [0, 2, 4, 7, 4, 2, 0, -2];
+    // Arpejo ascendente/descendente suave
+    const arpSequence = [0, 2, 4, 7, 7, 4, 2, 0];
+    const cycleLength = 16;
     
     for (let i = 0; i < this.stepCount; i++) {
+      if (i >= cycleLength) {
+        pattern.push({ ...pattern[i % cycleLength] });
+        continue;
+      }
       const noteIndex = arpSequence[i % arpSequence.length];
       const actualIndex = ((noteIndex % scaleNotes.length) + scaleNotes.length) % scaleNotes.length;
       
+      // Velocity crescente no início de cada grupo de 8
+      const groupPos = i % 8;
+      const velocity = groupPos === 0 ? 0.65 : 0.4 + (groupPos % 2 === 0 ? 0.05 : 0);
+      
       pattern.push({
         note: scaleNotes[actualIndex],
-        velocity: 0.4 + Math.random() * 0.3,
+        velocity: velocity + Math.random() * 0.1,
         duration: 0.15,
       });
     }
@@ -502,30 +602,38 @@ export class AudioEngine {
   generateBassPattern(): PatternStep[] {
     const scaleNotes = this.generateScaleNotes(this.currentKey, 2);
     const pattern: PatternStep[] = [];
+    // Progressão de baixo: tônica e quinta com walking ocasional
+    const bassPattern = [0, 0, 4, 0, 0, 0, 4, 2];
+    const cycleLength = 16;
     
     for (let i = 0; i < this.stepCount; i++) {
-      // Bass mais musical seguindo a estrutura harmônica
-      const isStrongBeat = i % 8 === 0;
-      const isMediumBeat = i % 4 === 0;
+      if (i >= cycleLength) {
+        pattern.push({ ...pattern[i % cycleLength] });
+        continue;
+      }
+      const beat = i % 8;
+      const degree = bassPattern[beat] % scaleNotes.length;
       
-      if (isStrongBeat) {
+      if (beat === 0) {
+        // Tônica forte no downbeat
         pattern.push({
-          note: scaleNotes[0],
-          velocity: 1.0,
-          duration: 1.0,
+          note: scaleNotes[degree],
+          velocity: 0.9,
+          duration: 0.8,
         });
-      } else if (isMediumBeat && Math.random() > 0.5) {
-        const noteIndex = Math.floor(Math.random() * Math.min(3, scaleNotes.length));
+      } else if (beat === 4) {
+        // Segundo beat forte
         pattern.push({
-          note: scaleNotes[noteIndex],
-          velocity: 0.8,
-          duration: 0.5,
+          note: scaleNotes[degree],
+          velocity: 0.75,
+          duration: 0.6,
         });
-      } else if (Math.random() > 0.8) {
+      } else if (beat % 2 === 0 && Math.random() > 0.5) {
+        // Notas de passagem ocasionais
         pattern.push({
-          note: scaleNotes[0],
-          velocity: 0.6,
-          duration: 0.25,
+          note: scaleNotes[degree],
+          velocity: 0.55,
+          duration: 0.3,
         });
       } else {
         pattern.push({ note: null, velocity: 0 });
@@ -536,14 +644,29 @@ export class AudioEngine {
   }
 
   generateSubPattern(): PatternStep[] {
+    // Sub usa oitava 1 (abaixo do bass) para não sobrepor frequências
     const rootNote = `${this.currentKey}1`;
+    const fifthNote = this.generateScaleNotes(this.currentKey, 1)[4] || rootNote;
     const pattern: PatternStep[] = [];
+    const cycleLength = 32;
     
     for (let i = 0; i < this.stepCount; i++) {
-      if (i % 8 === 0) {
+      if (i >= cycleLength) {
+        pattern.push({ ...pattern[i % cycleLength] });
+        continue;
+      }
+      if (i % 16 === 0) {
+        // Tônica longa a cada 16 steps
         pattern.push({
           note: rootNote,
-          velocity: 0.95,
+          velocity: 0.85,
+          duration: 4.0,
+        });
+      } else if (i % 16 === 8) {
+        // Quinta como ponto de apoio
+        pattern.push({
+          note: fifthNote,
+          velocity: 0.6,
           duration: 2.0,
         });
       } else {
@@ -555,26 +678,44 @@ export class AudioEngine {
   }
 
   generatePadPattern(): PatternStep[] {
-    const scaleNotes = [
-      ...this.generateScaleNotes(this.currentKey, 3),
-      ...this.generateScaleNotes(this.currentKey, 4),
-    ];
+    const scaleNotes = this.generateScaleNotes(this.currentKey, 3);
+    const scaleNotes4 = this.generateScaleNotes(this.currentKey, 4);
     const pattern: PatternStep[] = [];
     
-    // Chords de pad a cada 8 steps
-    const chordIntervals = [[0, 2, 4], [0, 2, 4, 6], [0, 3, 4]];
+    // Progressão harmônica diatônica: I - IV - V - vi (graus da escala)
+    const chordProgressions = [
+      [0, 2, 4],    // I (tônica)
+      [3, 5, 0],    // IV (subdominante) - com oitava
+      [4, 6, 1],    // V (dominante)
+      [5, 0, 2],    // vi (relativo menor)
+    ];
+    
+    const chordDuration = 16; // cada acorde dura 16 steps
+    const cycleLength = chordDuration * chordProgressions.length;
     
     for (let i = 0; i < this.stepCount; i++) {
-      if (i % 8 === 0) {
-        const chordIndex = Math.floor(i / 8) % chordIntervals.length;
-        const intervals = chordIntervals[chordIndex];
-        const chordNotes = intervals.map(interval => scaleNotes[interval % scaleNotes.length]);
+      if (i >= cycleLength) {
+        pattern.push({ ...pattern[i % cycleLength] });
+        continue;
+      }
+      if (i % chordDuration === 0) {
+        const progIndex = Math.floor(i / chordDuration) % chordProgressions.length;
+        const degrees = chordProgressions[progIndex];
         
-        pattern.push({
-          note: chordNotes.join(','),
-          velocity: 0.5 + Math.random() * 0.2,
-          duration: 8.0,
-        });
+        const chordNotes = degrees.map(degree => {
+          if (degree < scaleNotes.length) return scaleNotes[degree];
+          return scaleNotes4[degree - scaleNotes.length] || scaleNotes[degree % scaleNotes.length];
+        }).filter(Boolean);
+        
+        if (chordNotes.length > 0) {
+          pattern.push({
+            note: chordNotes.join(','),
+            velocity: 0.45 + (progIndex === 0 ? 0.1 : 0),
+            duration: chordDuration,
+          });
+        } else {
+          pattern.push({ note: null, velocity: 0 });
+        }
       } else {
         pattern.push({ note: null, velocity: 0 });
       }
@@ -587,12 +728,14 @@ export class AudioEngine {
     const scaleNotes = this.generateScaleNotes(this.currentKey, 2);
     const pattern: PatternStep[] = [];
     
+    // Drone: tônica + quinta sustentadas por toda a sequência
+    const droneNotes = [scaleNotes[0], scaleNotes[4]].filter(Boolean);
+    
     for (let i = 0; i < this.stepCount; i++) {
       if (i === 0) {
-        const droneNotes = [scaleNotes[0], scaleNotes[2], scaleNotes[4]].filter(Boolean);
         pattern.push({
           note: droneNotes.join(','),
-          velocity: 0.4,
+          velocity: 0.35,
           duration: this.stepCount,
         });
       } else {
@@ -603,128 +746,188 @@ export class AudioEngine {
     return pattern;
   }
 
-  // Padrões de percussão estilizados
-  generateDrumPattern(): PatternStep[] {
+  // Padrão de efeitos com colocação intencional
+  generateEffectPattern(): PatternStep[] {
     const pattern: PatternStep[] = [];
+    const stepCount = this.stepCount;
+    const cycleLength = 64;
     
-    for (let i = 0; i < this.stepCount; i++) {
-      const sounds: string[] = [];
-      let velocity = 0;
-      
-      switch (this.currentStyle.drumPattern) {
-        case 'four-on-floor':
-          if (i % 4 === 0) {
-            sounds.push('kick');
-            velocity = 1.0;
-          }
-          if (i % 8 === 4) {
-            sounds.push('snare');
-            velocity = 0.8;
-          }
-          if (i % 2 === 1) {
-            sounds.push('hihat');
-            velocity = 0.4;
-          }
-          break;
-          
-        case 'breakbeat':
-          if (i % 8 === 0 || i % 8 === 3) {
-            sounds.push('kick');
-            velocity = 1.0;
-          }
-          if (i % 8 === 4 || i % 8 === 6) {
-            sounds.push('snare');
-            velocity = 0.85;
-          }
-          if (i % 2 === 1) {
-            sounds.push('hihat');
-            velocity = i % 4 === 3 ? 0.5 : 0.3;
-          }
-          break;
-          
-        case 'half-time':
-          if (i % 8 === 0) {
-            sounds.push('kick');
-            velocity = 1.0;
-          }
-          if (i % 8 === 4) {
-            sounds.push('snare');
-            velocity = 0.9;
-          }
-          if (i % 4 === 2) {
-            sounds.push('hihat');
-            velocity = 0.5;
-          }
-          break;
-          
-        case 'syncopated':
-          if (i % 8 === 0 || (i % 8 === 5 && Math.random() > 0.5)) {
-            sounds.push('kick');
-            velocity = 0.9;
-          }
-          if (i % 8 === 3 || i % 8 === 7) {
-            sounds.push('snare');
-            velocity = 0.75;
-          }
-          if (i % 2 === 1 || i % 4 === 2) {
-            sounds.push(i % 3 === 0 ? 'hihat' : 'openhat');
-            velocity = 0.4;
-          }
-          break;
-          
-        case 'sparse':
-          if (i % 16 === 0) {
-            sounds.push('kick');
-            velocity = 0.8;
-          }
-          if (i % 16 === 8) {
-            sounds.push('snare');
-            velocity = 0.6;
-          }
-          if (Math.random() > 0.9) {
-            sounds.push('hihat');
-            velocity = 0.3;
-          }
-          break;
+    for (let i = 0; i < stepCount; i++) {
+      if (i >= cycleLength && i !== stepCount - 1) { // Manter o final original
+        pattern.push({ ...pattern[i % cycleLength] });
+        continue;
       }
+      // Efeitos apenas em momentos estruturais importantes
+      const isPhraseStart = i % 32 === 0;
+      const isMidPhrase = i % 32 === 16;
+      const isEnd = i === stepCount - 1;
       
-      // Adicionar variações extras baseadas no estilo
-      if (this.currentStyle.category === 'urban' && i % 4 === 3) {
-        sounds.push('rim');
-        velocity = Math.max(velocity, 0.5);
+      if (isPhraseStart) {
+        // Rise no início de seções
+        pattern.push({
+          note: 'rise',
+          velocity: 0.5,
+          duration: 2.0,
+        });
+      } else if (isMidPhrase) {
+        // Sweep no meio de seções longas
+        if (Math.random() > 0.5) {
+          pattern.push({
+            note: 'sweep',
+            velocity: 0.4,
+            duration: 1.5,
+          });
+        } else {
+          pattern.push({ note: null, velocity: 0 });
+        }
+      } else if (isEnd) {
+        // Impact no final
+        pattern.push({
+          note: 'impact',
+          velocity: 0.6,
+          duration: 1.0,
+        });
+      } else {
+        pattern.push({ note: null, velocity: 0 });
       }
-      
-      if (this.currentStyle.id === 'trap' && i % 2 === 1 && Math.random() > 0.3) {
-        sounds.push(Math.random() > 0.5 ? 'hihat' : 'openhat');
-      }
-      
-      pattern.push({
-        note: sounds.length > 0 ? sounds.join(',') : null,
-        velocity,
-        duration: 0.2,
-      });
     }
     
     return pattern;
   }
 
-  generateEffectPattern(): PatternStep[] {
+  // Padrão de percussão com velocidade correta por som e alinhamento
+  generateDrumPattern(): PatternStep[] {
     const pattern: PatternStep[] = [];
+    const totalSteps = this.stepCount;
+    // Usar 16 como base de repetição (sempre múltiplo de 16 para alinhamento correto)
+    const cycleLength = Math.min(16, totalSteps);
     
-    for (let i = 0; i < this.stepCount; i++) {
-      const probability = this.currentStyle.intensity === 'extreme' ? 0.1 : 
-                          this.currentStyle.intensity === 'high' ? 0.08 : 0.05;
+    for (let i = 0; i < totalSteps; i++) {
+      const stepInCycle = i % cycleLength;
+      const sounds: string[] = [];
+      const velocities: Record<string, number> = {};
       
-      if (Math.random() < probability) {
-        const effects = ['sweep', 'noise', 'impact', 'rise', 'fall'];
-        pattern.push({
-          note: effects[Math.floor(Math.random() * effects.length)],
-          velocity: 0.5 + Math.random() * 0.3,
-          duration: 2.0,
-        });
-      } else {
-        pattern.push({ note: null, velocity: 0 });
+      switch (this.currentStyle.drumPattern) {
+        case 'four-on-floor':
+          if (stepInCycle % 4 === 0) {
+            sounds.push('kick');
+            velocities['kick'] = 0.95;
+          }
+          if (stepInCycle % 8 === 4) {
+            sounds.push('snare');
+            velocities['snare'] = 0.8;
+          }
+          if (stepInCycle % 2 === 0) {
+            sounds.push('hihat');
+            velocities['hihat'] = stepInCycle % 4 === 2 ? 0.35 : 0.25;
+          }
+          // Open hat no upbeat
+          if (stepInCycle % 4 === 3 && stepInCycle % 8 !== 7) {
+            sounds.push('openhat');
+            velocities['openhat'] = 0.3;
+          }
+          break;
+          
+        case 'breakbeat':
+          if (stepInCycle === 0 || stepInCycle === 3 || stepInCycle === 8 || stepInCycle === 11) {
+            sounds.push('kick');
+            velocities['kick'] = 0.9;
+          }
+          if (stepInCycle === 4 || stepInCycle === 12) {
+            sounds.push('snare');
+            velocities['snare'] = 0.85;
+          }
+          // Hi-hat em semicolcheias no breakbeat
+          if (stepInCycle % 2 === 0) {
+            sounds.push('hihat');
+            velocities['hihat'] = stepInCycle % 4 === 0 ? 0.35 : 0.22;
+          }
+          break;
+          
+        case 'half-time':
+          if (stepInCycle === 0) {
+            sounds.push('kick');
+            velocities['kick'] = 0.95;
+          }
+          if (stepInCycle === 8) {
+            sounds.push('snare');
+            velocities['snare'] = 0.85;
+          }
+          if (stepInCycle % 4 === 2) {
+            sounds.push('hihat');
+            velocities['hihat'] = 0.3;
+          }
+          // Ghost snare
+          if (stepInCycle === 12 && Math.random() > 0.5) {
+            sounds.push('snare');
+            velocities['snare'] = 0.4;
+          }
+          break;
+          
+        case 'syncopated':
+          if (stepInCycle === 0 || stepInCycle === 6 || stepInCycle === 10) {
+            sounds.push('kick');
+            velocities['kick'] = 0.9;
+          }
+          if (stepInCycle === 4 || stepInCycle === 12) {
+            sounds.push('snare');
+            velocities['snare'] = 0.8;
+          }
+          // Hi-hat sincopado com variação
+          if (stepInCycle % 2 === 0) {
+            sounds.push(stepInCycle % 6 === 2 ? 'openhat' : 'hihat');
+            velocities[stepInCycle % 6 === 2 ? 'openhat' : 'hihat'] = 0.3;
+          }
+          break;
+          
+        case 'sparse':
+          if (stepInCycle === 0) {
+            sounds.push('kick');
+            velocities['kick'] = 0.8;
+          }
+          if (stepInCycle === 8) {
+            sounds.push('snare');
+            velocities['snare'] = 0.6;
+          }
+          if (stepInCycle % 8 === 4) {
+            sounds.push('hihat');
+            velocities['hihat'] = 0.2;
+          }
+          break;
       }
+      
+      // Variações por estilo (com velocities separadas)
+      if (this.currentStyle.category === 'urban' && stepInCycle % 4 === 3) {
+        if (!sounds.includes('rim')) {
+          sounds.push('rim');
+          velocities['rim'] = 0.45;
+        }
+      }
+      
+      // Trap: hi-hats em semicolcheias
+      if (this.currentStyle.id === 'trap' && stepInCycle % 2 === 1) {
+        const hihatVariation = stepInCycle % 4 === 1 ? 'hihat' : 'openhat';
+        sounds.push(hihatVariation);
+        velocities[hihatVariation] = 0.25;
+      }
+      
+      // Phonk: cowbell pattern
+      if (this.currentStyle.id === 'phonk' && stepInCycle % 4 === 2) {
+        sounds.push('cowbell');
+        velocities['cowbell'] = 0.5;
+      }
+      
+      // Calcular velocity final como média dos sons presentes
+      let finalVelocity = 0;
+      if (sounds.length > 0) {
+        finalVelocity = sounds.reduce((sum, s) => sum + (velocities[s] || 0.5), 0) / sounds.length;
+      }
+      
+      pattern.push({
+        note: sounds.length > 0 ? sounds.join(',') : null,
+        velocity: finalVelocity,
+        duration: 0.2,
+      });
     }
     
     return pattern;
@@ -770,41 +973,47 @@ export class AudioEngine {
   playStep() {
     if (!this.isPlaying) return;
 
+    // Duração do step em segundos baseada no BPM
+    const stepDurationSec = (60 / this.bpm) / 4;
+
     this.tracks.forEach(track => {
       if (track.muted) return;
 
       const step = track.pattern[this.currentStep];
       if (!step || step.velocity === 0) return;
 
+      // Usar duração do step se definida, senão usar padrão do tipo
+      const noteDuration = step.duration || stepDurationSec;
+
       switch (track.type) {
         case 'melody':
-          if (step.note) this.playMelody(step.note, step, track);
+          if (step.note) this.playMelody(step.note, { ...step, duration: noteDuration }, track);
           break;
         case 'lead':
-          if (step.note) this.playLead(step.note, step, track);
+          if (step.note) this.playLead(step.note, { ...step, duration: noteDuration }, track);
           break;
         case 'pluck':
-          if (step.note) this.playPluck(step.note, step, track);
+          if (step.note) this.playPluck(step.note, { ...step, duration: noteDuration }, track);
           break;
         case 'arp':
-          if (step.note) this.playArp([step.note], step, this.currentStep, track);
+          if (step.note) this.playArp([step.note], { ...step, duration: noteDuration }, this.currentStep, track);
           break;
         case 'bass':
-          if (step.note) this.playBass(step.note, step, track);
+          if (step.note) this.playBass(step.note, { ...step, duration: noteDuration }, track);
           break;
         case 'sub':
-          if (step.note) this.playSub(step.note, step, track);
+          if (step.note) this.playSub(step.note, { ...step, duration: noteDuration }, track);
           break;
         case 'pad':
           if (step.note) {
             const notes = step.note.split(',');
-            this.playPad(notes, step, track);
+            this.playPad(notes, { ...step, duration: noteDuration }, track);
           }
           break;
         case 'drone':
           if (step.note && this.currentStep === 0) {
             const notes = step.note.split(',');
-            this.playDrone(notes, step, track);
+            this.playDrone(notes, { ...step, duration: noteDuration }, track);
           }
           break;
         case 'percussion':
@@ -819,7 +1028,38 @@ export class AudioEngine {
           break;
         case 'effect':
           if (step.note) {
-            this.playNote(440 + Math.random() * 440, 0.2, step.velocity, 'triangle');
+            // Efeitos com sons apropriados por tipo
+            const effectType = step.note;
+            const effects = track.effects || { reverb: 0.7, delay: 0.5, distortion: 0.3, chorus: 0.4, phaser: 0.4 };
+            
+            if (effectType === 'rise') {
+              // Sweep ascendente
+              this.playSynthNote(200, noteDuration, step.velocity * 0.4, {
+                waveform: 'sawtooth', attack: 0.05, decay: noteDuration * 0.8,
+                sustain: 0.3, release: noteDuration * 0.2,
+                filterCutoff: 1500, filterResonance: 8, detune: 0, unison: 1
+              }, effects);
+            } else if (effectType === 'fall') {
+              // Sweep descendente
+              this.playSynthNote(800, noteDuration, step.velocity * 0.4, {
+                waveform: 'sawtooth', attack: noteDuration * 0.3, decay: noteDuration * 0.7,
+                sustain: 0.2, release: 0.1,
+                filterCutoff: 800, filterResonance: 6, detune: 0, unison: 1
+              }, effects);
+            } else if (effectType === 'impact') {
+              // Impacto percussivo
+              this.playPercussion('crash', step);
+            } else if (effectType === 'sweep') {
+              // Filtro sweep
+              this.playSynthNote(300, noteDuration, step.velocity * 0.3, {
+                waveform: 'triangle', attack: 0.01, decay: noteDuration,
+                sustain: 0.1, release: 0.3,
+                filterCutoff: 2000, filterResonance: 12, detune: 0, unison: 1
+              }, effects);
+            } else {
+              // Noise ou outros
+              this.playPercussion('shaker', step);
+            }
           }
           break;
       }
@@ -951,7 +1191,7 @@ export class AudioEngine {
   setTrackEffects(trackId: string, effects: Partial<TrackEffects>) {
     const track = this.tracks.find(t => t.id === trackId);
     if (track) {
-      track.effects = { ...track.effects, ...effects };
+      track.effects = { ...(track.effects as TrackEffects), ...effects } as TrackEffects;
       
       // Atualizar nós de efeitos
       const effectNodes = this.trackEffectsNodes.get(trackId);
@@ -972,7 +1212,7 @@ export class AudioEngine {
   setTrackSynthParams(trackId: string, params: Partial<SynthParams>) {
     const track = this.tracks.find(t => t.id === trackId);
     if (track) {
-      track.synthParams = { ...track.synthParams, ...params };
+      track.synthParams = { ...(track.synthParams as SynthParams), ...params } as SynthParams;
     }
   }
 

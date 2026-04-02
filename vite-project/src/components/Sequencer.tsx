@@ -1,4 +1,5 @@
-import type { Track, TrackType, MAX_STEPS } from '../types/audio.ts';
+import { MAX_STEPS } from '../types/audio.ts';
+import type { Track, TrackType } from '../types/audio.ts';
 import { useState, useRef, useEffect } from 'react';
 
 interface SequencerProps {

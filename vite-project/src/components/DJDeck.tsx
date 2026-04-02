@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { NOTES, OCTAVES, SCALES, MUSIC_STYLES, PERCUSSION_SOUNDS, MAX_STEPS, STYLE_CATEGORIES, INTENSITIES } from '../types/audio.ts';
+import { useState, useEffect } from 'react';
+import { NOTES, SCALES, MUSIC_STYLES, PERCUSSION_SOUNDS, MAX_STEPS, STYLE_CATEGORIES, INTENSITIES } from '../types/audio.ts';
 import { audioEngine } from '../hooks/useAudio.ts';
 import Sequencer from './Sequencer.tsx';
 import Visualizer from './Visualizer.tsx';
@@ -22,10 +22,8 @@ export default function DJDeck() {
   const [currentStep, setCurrentStep] = useState(0);
   const [stepCount, setStepCount] = useState(MAX_STEPS);
   const [styleCategory, setStyleCategory] = useState('all');
-  const [showTrackSettings, setShowTrackSettings] = useState<string | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
   const [selectedPercussion, setSelectedPercussion] = useState('kick');
-  const [viewMode, setViewMode] = useState<'overview' | 'track-settings'>('overview');
 
   useEffect(() => {
     audioEngine.setBPM(bpm);
@@ -112,10 +110,6 @@ export default function DJDeck() {
     const currentStepData = newPattern[stepIndex];
 
     if (track.type === 'percussion') {
-      const percussionTypes = Object.keys(PERCUSSION_SOUNDS);
-      const currentTypeIndex = percussionTypes.indexOf(currentStepData.note || '');
-      const nextType = percussionTypes[(currentTypeIndex + 1) % percussionTypes.length];
-      
       newPattern[stepIndex] = {
         note: currentStepData.note === null ? selectedPercussion : null,
         velocity: 0.8,

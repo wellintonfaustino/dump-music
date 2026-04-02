@@ -102,28 +102,28 @@ export const SCALES: Record<string, Scale> = {
 
 // Parâmetros de sintetizador padrão por tipo de instrumento
 export const DEFAULT_SYNTH_PARAMS: Record<TrackType, SynthParams> = {
-  melody: { waveform: 'sine', attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.3, filterCutoff: 2000, filterResonance: 5, detune: 0, unison: 1 },
-  lead: { waveform: 'sawtooth', attack: 0.01, decay: 0.2, sustain: 0.8, release: 0.4, filterCutoff: 3000, filterResonance: 8, detune: 5, unison: 2 },
-  pluck: { waveform: 'triangle', attack: 0.001, decay: 0.3, sustain: 0.1, release: 0.1, filterCutoff: 4000, filterResonance: 10, detune: 0, unison: 1 },
-  bass: { waveform: 'sawtooth', attack: 0.01, decay: 0.3, sustain: 0.8, release: 0.4, filterCutoff: 800, filterResonance: 4, detune: 0, unison: 1 },
-  sub: { waveform: 'sine', attack: 0.05, decay: 0.4, sustain: 0.9, release: 0.5, filterCutoff: 200, filterResonance: 2, detune: 0, unison: 1 },
-  pad: { waveform: 'sawtooth', attack: 0.5, decay: 0.3, sustain: 0.9, release: 1.5, filterCutoff: 1500, filterResonance: 3, detune: 10, unison: 4 },
-  arp: { waveform: 'square', attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.2, filterCutoff: 2500, filterResonance: 6, detune: 3, unison: 2 },
+  melody: { waveform: 'sine', attack: 0.02, decay: 0.2, sustain: 0.6, release: 0.4, filterCutoff: 2500, filterResonance: 2, detune: 0, unison: 1 },
+  lead: { waveform: 'square', attack: 0.02, decay: 0.3, sustain: 0.5, release: 0.4, filterCutoff: 1800, filterResonance: 2, detune: 2, unison: 2 },
+  pluck: { waveform: 'sawtooth', attack: 0.01, decay: 0.6, sustain: 0.2, release: 0.4, filterCutoff: 3000, filterResonance: 2, detune: 3, unison: 2 },
+  bass: { waveform: 'sawtooth', attack: 0.02, decay: 0.4, sustain: 0.7, release: 0.3, filterCutoff: 1000, filterResonance: 3, detune: 5, unison: 2 },
+  sub: { waveform: 'sine', attack: 0.05, decay: 0.4, sustain: 0.9, release: 0.5, filterCutoff: 150, filterResonance: 1, detune: 0, unison: 1 },
+  pad: { waveform: 'sawtooth', attack: 0.8, decay: 0.5, sustain: 0.8, release: 2.0, filterCutoff: 1200, filterResonance: 2, detune: 12, unison: 4 },
+  arp: { waveform: 'square', attack: 0.01, decay: 0.15, sustain: 0.4, release: 0.2, filterCutoff: 2000, filterResonance: 4, detune: 4, unison: 2 },
   percussion: { waveform: 'noise', attack: 0.001, decay: 0.2, sustain: 0, release: 0.1, filterCutoff: 10000, filterResonance: 0, detune: 0, unison: 1 },
   effect: { waveform: 'triangle', attack: 0.1, decay: 0.5, sustain: 0.4, release: 1.0, filterCutoff: 3000, filterResonance: 7, detune: 0, unison: 1 },
-  drone: { waveform: 'sawtooth', attack: 2.0, decay: 0.5, sustain: 1.0, release: 3.0, filterCutoff: 800, filterResonance: 5, detune: 20, unison: 8 },
+  drone: { waveform: 'sawtooth', attack: 2.5, decay: 0.5, sustain: 1.0, release: 3.0, filterCutoff: 700, filterResonance: 4, detune: 25, unison: 8 },
 };
 
 // Efeitos padrão por tipo de instrumento
 export const DEFAULT_TRACK_EFFECTS: Record<TrackType, TrackEffects> = {
-  melody: { reverb: 0.3, delay: 0.2, distortion: 0, chorus: 0.3, phaser: 0.1 },
-  lead: { reverb: 0.4, delay: 0.3, distortion: 0.1, chorus: 0.2, phaser: 0.2 },
-  pluck: { reverb: 0.25, delay: 0.15, distortion: 0, chorus: 0.1, phaser: 0 },
-  bass: { reverb: 0.1, delay: 0.05, distortion: 0.2, chorus: 0, phaser: 0 },
-  sub: { reverb: 0.05, delay: 0, distortion: 0.1, chorus: 0, phaser: 0 },
-  pad: { reverb: 0.6, delay: 0.4, distortion: 0, chorus: 0.5, phaser: 0.3 },
-  arp: { reverb: 0.35, delay: 0.25, distortion: 0, chorus: 0.2, phaser: 0.1 },
-  percussion: { reverb: 0.2, delay: 0, distortion: 0.05, chorus: 0, phaser: 0 },
+  melody: { reverb: 0.4, delay: 0.2, distortion: 0, chorus: 0.3, phaser: 0.1 },
+  lead: { reverb: 0.5, delay: 0.3, distortion: 0.0, chorus: 0.4, phaser: 0.1 },
+  pluck: { reverb: 0.3, delay: 0.15, distortion: 0.05, chorus: 0.2, phaser: 0.05 },
+  bass: { reverb: 0.1, delay: 0.05, distortion: 0.1, chorus: 0, phaser: 0 },
+  sub: { reverb: 0.02, delay: 0, distortion: 0.05, chorus: 0, phaser: 0 },
+  pad: { reverb: 0.7, delay: 0.4, distortion: 0, chorus: 0.5, phaser: 0.3 },
+  arp: { reverb: 0.4, delay: 0.25, distortion: 0, chorus: 0.2, phaser: 0.1 },
+  percussion: { reverb: 0.1, delay: 0, distortion: 0.05, chorus: 0, phaser: 0 },
   effect: { reverb: 0.7, delay: 0.5, distortion: 0.3, chorus: 0.4, phaser: 0.4 },
   drone: { reverb: 0.8, delay: 0.6, distortion: 0.1, chorus: 0.6, phaser: 0.5 },
 };
@@ -198,32 +198,29 @@ export const MUSIC_STYLES: MusicStyle[] = [
   { id: 'bossa-nova', name: 'Bossa Nova', bpm: 120, baseScale: [0, 2, 3, 5, 7, 9, 10], description: 'Brasileira e suave', color: '#00b894', category: 'classic', drumPattern: 'syncopated', intensity: 'low' },
 ];
 
-// Sons de percussão expandidos
+// Sons de percussão expandidos - parâmetros otimizados para síntese Web Audio
 export const PERCUSSION_SOUNDS = {
-  // Basicos
-  kick: { name: 'Kick', frequency: 150, decay: 0.5, type: 'sine' as OscillatorType, noise: 0 },
-  snare: { name: 'Snare', frequency: 200, decay: 0.2, type: 'triangle' as OscillatorType, noise: 0.7 },
-  hihat: { name: 'Hi-Hat', frequency: 10000, decay: 0.05, type: 'square' as OscillatorType, noise: 0.3 },
-  
-  // Adicionais
-  clap: { name: 'Clap', frequency: 800, decay: 0.15, type: 'sawtooth' as OscillatorType, noise: 0.8 },
-  rim: { name: 'Rimshot', frequency: 2000, decay: 0.08, type: 'square' as OscillatorType, noise: 0.2 },
-  tom: { name: 'Tom', frequency: 100, decay: 0.4, type: 'sine' as OscillatorType, noise: 0 },
-  conga: { name: 'Conga', frequency: 300, decay: 0.25, type: 'sine' as OscillatorType, noise: 0.1 },
-  bongo: { name: 'Bongo', frequency: 500, decay: 0.15, type: 'sine' as OscillatorType, noise: 0.1 },
-  tambourine: { name: 'Tambourine', frequency: 8000, decay: 0.06, type: 'square' as OscillatorType, noise: 0.4 },
-  shaker: { name: 'Shaker', frequency: 6000, decay: 0.04, type: 'square' as OscillatorType, noise: 0.5 },
-  crash: { name: 'Crash', frequency: 5000, decay: 1.5, type: 'sawtooth' as OscillatorType, noise: 0.9 },
-  ride: { name: 'Ride', frequency: 4000, decay: 0.3, type: 'triangle' as OscillatorType, noise: 0.3 },
-  cowbell: { name: 'Cowbell', frequency: 800, decay: 0.08, type: 'square' as OscillatorType, noise: 0.1 },
-  woodblock: { name: 'Woodblock', frequency: 1200, decay: 0.06, type: 'square' as OscillatorType, noise: 0 },
-  triangle: { name: 'Triangle', frequency: 3000, decay: 0.5, type: 'triangle' as OscillatorType, noise: 0.2 },
-  guiro: { name: 'Guiro', frequency: 4000, decay: 0.1, type: 'sawtooth' as OscillatorType, noise: 0.6 },
-  cabasa: { name: 'Cabasa', frequency: 7000, decay: 0.05, type: 'square' as OscillatorType, noise: 0.5 },
-  openhat: { name: 'Open Hat', frequency: 9000, decay: 0.2, type: 'square' as OscillatorType, noise: 0.4 },
-  pedalhat: { name: 'Pedal Hat', frequency: 8000, decay: 0.1, type: 'square' as OscillatorType, noise: 0.3 },
-  snap: { name: 'Snap', frequency: 3000, decay: 0.03, type: 'triangle' as OscillatorType, noise: 0.3 },
-  stomp: { name: 'Stomp', frequency: 80, decay: 0.3, type: 'sine' as OscillatorType, noise: 0.1 },
+  kick: { name: 'Kick', frequency: 60, decay: 0.4, type: 'sine' as OscillatorType, noise: 0, pitchDecay: 0.08, noiseFilter: 0 },
+  snare: { name: 'Snare', frequency: 180, decay: 0.15, type: 'triangle' as OscillatorType, noise: 0.65, pitchDecay: 0, noiseFilter: 4000 },
+  hihat: { name: 'Hi-Hat', frequency: 8000, decay: 0.06, type: 'square' as OscillatorType, noise: 0.85, pitchDecay: 0, noiseFilter: 7000 },
+  clap: { name: 'Clap', frequency: 1200, decay: 0.12, type: 'sawtooth' as OscillatorType, noise: 0.9, pitchDecay: 0, noiseFilter: 3000 },
+  rim: { name: 'Rimshot', frequency: 1800, decay: 0.04, type: 'square' as OscillatorType, noise: 0.15, pitchDecay: 0, noiseFilter: 5000 },
+  tom: { name: 'Tom', frequency: 100, decay: 0.3, type: 'sine' as OscillatorType, noise: 0, pitchDecay: 0.12, noiseFilter: 0 },
+  conga: { name: 'Conga', frequency: 250, decay: 0.15, type: 'sine' as OscillatorType, noise: 0.05, pitchDecay: 0.06, noiseFilter: 0 },
+  bongo: { name: 'Bongo', frequency: 400, decay: 0.1, type: 'sine' as OscillatorType, noise: 0.08, pitchDecay: 0.04, noiseFilter: 0 },
+  tambourine: { name: 'Tambourine', frequency: 6000, decay: 0.12, type: 'triangle' as OscillatorType, noise: 0.7, pitchDecay: 0, noiseFilter: 5500 },
+  shaker: { name: 'Shaker', frequency: 5000, decay: 0.04, type: 'square' as OscillatorType, noise: 0.8, pitchDecay: 0, noiseFilter: 4500 },
+  crash: { name: 'Crash', frequency: 4000, decay: 1.2, type: 'sawtooth' as OscillatorType, noise: 0.85, pitchDecay: 0, noiseFilter: 6000 },
+  ride: { name: 'Ride', frequency: 3500, decay: 0.5, type: 'triangle' as OscillatorType, noise: 0.5, pitchDecay: 0, noiseFilter: 5000 },
+  cowbell: { name: 'Cowbell', frequency: 560, decay: 0.15, type: 'square' as OscillatorType, noise: 0.05, pitchDecay: 0, noiseFilter: 3000 },
+  woodblock: { name: 'Woodblock', frequency: 1200, decay: 0.03, type: 'square' as OscillatorType, noise: 0.02, pitchDecay: 0, noiseFilter: 4000 },
+  triangle: { name: 'Triangle', frequency: 2500, decay: 0.6, type: 'sine' as OscillatorType, noise: 0.05, pitchDecay: 0, noiseFilter: 6000 },
+  guiro: { name: 'Guiro', frequency: 3000, decay: 0.08, type: 'sawtooth' as OscillatorType, noise: 0.5, pitchDecay: 0, noiseFilter: 3500 },
+  cabasa: { name: 'Cabasa', frequency: 5500, decay: 0.04, type: 'square' as OscillatorType, noise: 0.75, pitchDecay: 0, noiseFilter: 5000 },
+  openhat: { name: 'Open Hat', frequency: 7500, decay: 0.25, type: 'square' as OscillatorType, noise: 0.8, pitchDecay: 0, noiseFilter: 6500 },
+  pedalhat: { name: 'Pedal Hat', frequency: 7000, decay: 0.06, type: 'square' as OscillatorType, noise: 0.7, pitchDecay: 0, noiseFilter: 6000 },
+  snap: { name: 'Snap', frequency: 2500, decay: 0.02, type: 'triangle' as OscillatorType, noise: 0.2, pitchDecay: 0, noiseFilter: 4000 },
+  stomp: { name: 'Stomp', frequency: 50, decay: 0.25, type: 'sine' as OscillatorType, noise: 0.05, pitchDecay: 0.1, noiseFilter: 0 },
 };
 
 // Frequências de notas
@@ -237,25 +234,25 @@ export const KEY_FREQUENCIES: Record<string, number> = {
   'C7': 2093.00,
 };
 
-// Tracks padrão expandidas
+// Tracks padrão com volumes balanceados
 export const DEFAULT_TRACKS: Omit<Track, 'id' | 'pattern'>[] = [
   // Melodia
-  { name: 'Melodia', muted: false, volume: 0.8, pan: 0, type: 'melody', synthParams: DEFAULT_SYNTH_PARAMS.melody, effects: DEFAULT_TRACK_EFFECTS.melody },
-  { name: 'Lead', muted: false, volume: 0.85, pan: 0.1, type: 'lead', synthParams: DEFAULT_SYNTH_PARAMS.lead, effects: DEFAULT_TRACK_EFFECTS.lead },
-  { name: 'Arp', muted: false, volume: 0.7, pan: -0.2, type: 'arp', synthParams: DEFAULT_SYNTH_PARAMS.arp, effects: DEFAULT_TRACK_EFFECTS.arp },
-  { name: 'Pluck', muted: false, volume: 0.75, pan: 0.2, type: 'pluck', synthParams: DEFAULT_SYNTH_PARAMS.pluck, effects: DEFAULT_TRACK_EFFECTS.pluck },
+  { name: 'Melodia', muted: false, volume: 0.65, pan: 0, type: 'melody', synthParams: DEFAULT_SYNTH_PARAMS.melody, effects: DEFAULT_TRACK_EFFECTS.melody },
+  { name: 'Lead', muted: false, volume: 0.6, pan: 0.15, type: 'lead', synthParams: DEFAULT_SYNTH_PARAMS.lead, effects: DEFAULT_TRACK_EFFECTS.lead },
+  { name: 'Arp', muted: false, volume: 0.5, pan: -0.2, type: 'arp', synthParams: DEFAULT_SYNTH_PARAMS.arp, effects: DEFAULT_TRACK_EFFECTS.arp },
+  { name: 'Guitarra', muted: false, volume: 0.6, pan: 0.2, type: 'pluck', synthParams: DEFAULT_SYNTH_PARAMS.pluck, effects: DEFAULT_TRACK_EFFECTS.pluck },
   
   // Bass
-  { name: 'Baixo', muted: false, volume: 0.9, pan: 0, type: 'bass', synthParams: DEFAULT_SYNTH_PARAMS.bass, effects: DEFAULT_TRACK_EFFECTS.bass },
-  { name: 'Sub', muted: false, volume: 0.95, pan: 0, type: 'sub', synthParams: DEFAULT_SYNTH_PARAMS.sub, effects: DEFAULT_TRACK_EFFECTS.sub },
+  { name: 'Baixo', muted: false, volume: 0.75, pan: 0, type: 'bass', synthParams: DEFAULT_SYNTH_PARAMS.bass, effects: DEFAULT_TRACK_EFFECTS.bass },
+  { name: 'Sub', muted: false, volume: 0.8, pan: 0, type: 'sub', synthParams: DEFAULT_SYNTH_PARAMS.sub, effects: DEFAULT_TRACK_EFFECTS.sub },
   
   // Harmonia
-  { name: 'Pad', muted: false, volume: 0.8, pan: -0.3, type: 'pad', synthParams: DEFAULT_SYNTH_PARAMS.pad, effects: DEFAULT_TRACK_EFFECTS.pad },
-  { name: 'Drone', muted: true, volume: 0.6, pan: 0, type: 'drone', synthParams: DEFAULT_SYNTH_PARAMS.drone, effects: DEFAULT_TRACK_EFFECTS.drone },
+  { name: 'Pad', muted: false, volume: 0.45, pan: -0.3, type: 'pad', synthParams: DEFAULT_SYNTH_PARAMS.pad, effects: DEFAULT_TRACK_EFFECTS.pad },
+  { name: 'Drone', muted: true, volume: 0.4, pan: 0, type: 'drone', synthParams: DEFAULT_SYNTH_PARAMS.drone, effects: DEFAULT_TRACK_EFFECTS.drone },
   
   // Percussão
   { name: 'Percussão', muted: false, volume: 0.7, pan: 0, type: 'percussion', synthParams: DEFAULT_SYNTH_PARAMS.percussion, effects: DEFAULT_TRACK_EFFECTS.percussion },
-  { name: 'FX', muted: true, volume: 0.6, pan: 0.3, type: 'effect', synthParams: DEFAULT_SYNTH_PARAMS.effect, effects: DEFAULT_TRACK_EFFECTS.effect },
+  { name: 'FX', muted: true, volume: 0.4, pan: 0.3, type: 'effect', synthParams: DEFAULT_SYNTH_PARAMS.effect, effects: DEFAULT_TRACK_EFFECTS.effect },
 ];
 
 // Categorias de estilos

@@ -3,7 +3,7 @@ import { audioEngine } from '../hooks/useAudio.ts';
 
 export default function Visualizer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number>(0);
   const [isActive, setIsActive] = useState(false);
 
   useEffect(() => {
